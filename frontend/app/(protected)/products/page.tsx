@@ -209,10 +209,7 @@ export default function ProductsPage() {
         <div className="mt-8">
           <ProductList
             products={products}
-            onEdit={(product) => {
-              setSelectedProductForUpload(product.id);
-              handleEdit(product);
-            }}
+            onEdit={handleEdit}
             apiUrl={API_URL}
           />
         </div>
