@@ -82,6 +82,12 @@ export const updateProduct = async (req: Request, res: Response) => {
         .json({ error: 'Name, description, and price are required' });
     }
 
+    if (!supplierId) {
+      return res
+        .status(400)
+        .json({ error: 'Supplier ID is required' });
+    }
+
     // Verify ownership
     const existingProduct = await prisma.product.findFirst({
       where: { id, userId },

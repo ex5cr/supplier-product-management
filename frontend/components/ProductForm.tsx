@@ -62,7 +62,8 @@ export default function ProductForm({
       setSupplierId(suppliers[0].id);
       originalSupplierId.current = '';
     }
-  }, [product, suppliers, supplierId]);
+    // Only depend on product and suppliers, not supplierId to avoid resetting after password confirmation
+  }, [product, suppliers]);
 
   const handleSupplierChange = (newSupplierId: string) => {
     // If editing and supplier is being changed, require password confirmation
@@ -117,12 +118,19 @@ export default function ProductForm({
     setError('');
     setLoading(true);
 
+    // Ensure supplierId is set
+    if (!supplierId) {
+      setError('Please select a supplier');
+      setLoading(false);
+      return;
+    }
+
     try {
       await onSubmit({
         name,
         description,
         price: parseFloat(price),
-        supplierId,
+        supplierId, // This should be the current supplierId from state
       });
       if (!product) {
         // Reset form only for new products

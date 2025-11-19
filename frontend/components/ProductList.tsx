@@ -50,10 +50,12 @@ export default function ProductList({
                   {product.imagePath && (
                     <div className="flex-shrink-0">
                       <img
+                        key={`${product.id}-${product.imagePath}`}
                         className="h-16 w-16 object-cover rounded"
                         src={`${apiUrl}${product.imagePath}`}
                         alt={product.name}
                         onError={(e) => {
+                          console.error('Image load error:', `${apiUrl}${product.imagePath}`);
                           (e.target as HTMLImageElement).style.display = 'none';
                         }}
                       />

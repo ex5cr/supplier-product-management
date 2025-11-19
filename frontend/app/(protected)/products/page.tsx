@@ -45,7 +45,10 @@ export default function ProductsPage() {
     variant: 'info',
   });
   const [deleting, setDeleting] = useState(false);
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  // Get base URL without /api suffix for static file serving
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL 
+    ? process.env.NEXT_PUBLIC_API_URL.replace('/api', '')
+    : 'http://localhost:3001';
 
   const fetchProducts = async () => {
     try {
@@ -108,11 +111,13 @@ export default function ProductsPage() {
   }) => {
     if (!editingProduct) return;
     // Always include supplierId in update
-    await api.updateProduct(editingProduct.id, {
+    const updatedProduct = await api.updateProduct(editingProduct.id, {
       ...data,
       supplierId: data.supplierId,
     });
+    // Refresh products list to get updated supplier information
     await fetchProducts();
+    // Close form after successful update
     setEditingProduct(null);
     setShowForm(false);
   };
@@ -169,7 +174,12 @@ export default function ProductsPage() {
 
     setUploadingImage(true);
     try {
-      await api.uploadProductImage(editingProduct.id, file);
+      const result = await api.uploadProductImage(editingProduct.id, file);
+      // Update the editing product with the new image path
+      if (result.product) {
+        setEditingProduct(result.product);
+      }
+      // Refresh products list to show the image
       await fetchProducts();
       setAlertModal({
         isOpen: true,
@@ -274,7 +284,7 @@ export default function ProductsPage() {
             products={products}
             onEdit={handleEdit}
             onDelete={handleDeleteClick}
-            apiUrl={API_URL}
+            apiUrl={API_BASE_URL}
           />
         </div>
       )}
