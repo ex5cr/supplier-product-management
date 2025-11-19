@@ -112,7 +112,12 @@ export const updateProduct = async (req: Request, res: Response) => {
       }
     }
 
-    const updateData: any = {
+    const updateData: {
+      name: string;
+      description: string;
+      price: number;
+      supplierId?: string;
+    } = {
       name,
       description,
       price: parseFloat(price),
@@ -180,7 +185,9 @@ export const uploadProductImage = async (req: Request, res: Response) => {
       },
     });
 
-    const updateData: any = {};
+    const updateData: {
+      primaryImageId?: string;
+    } = {};
 
     // Set as primary if no primary is set
     if (!existingProduct.primaryImageId) {
@@ -296,14 +303,13 @@ export const deleteProductImage = async (req: Request, res: Response) => {
 
     if (product?.primaryImageId === imageId) {
       // Find another image to set as primary
-      const otherImage = product.images.find((img) => img.id !== imageId);
+      const otherImage = product.images.find((img: { id: string }) => img.id !== imageId);
       
-      const updateData: any = {};
-      if (otherImage) {
-        updateData.primaryImageId = otherImage.id;
-      } else {
-        updateData.primaryImageId = null;
-      }
+      const updateData: {
+        primaryImageId: string | null;
+      } = {
+        primaryImageId: otherImage ? otherImage.id : null,
+      };
 
       await prisma.product.update({
         where: { id: image.productId },

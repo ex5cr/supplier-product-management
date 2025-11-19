@@ -35,7 +35,9 @@ technical test/
 - ✅ **User data isolation** - Each user only sees and manages their own suppliers and products
 - ✅ Supplier management (Create, Read, Update, Delete)
 - ✅ Product management (Create, Read, Update, Delete)
+- ✅ **Multiple product images** - Upload, manage, and set primary image
 - ✅ Product image upload (JPG, PNG, JPEG) with image display
+- ✅ **Primary image selection** - Choose which image displays as the main product image
 - ✅ Search products by name or supplier name
 - ✅ **Password confirmation** required when changing a product's supplier
 - ✅ **Safety features** - Prevents deletion of suppliers with associated products
@@ -126,11 +128,13 @@ The frontend will be available at `http://localhost:3000`
 - `DELETE /api/suppliers/:id` - Delete a supplier (only if no products associated)
 
 ### Products (Protected)
-- `GET /api/products` - Get all products (user-specific)
+- `GET /api/products` - Get all products (user-specific, includes images)
 - `POST /api/products` - Create a new product
 - `PUT /api/products/:id` - Update a product (requires password confirmation to change supplier)
 - `DELETE /api/products/:id` - Delete a product
-- `POST /api/products/upload` - Upload product image
+- `POST /api/products/upload` - Upload a new product image
+- `DELETE /api/products/images/:imageId` - Delete a product image
+- `PUT /api/products/images/:imageId/primary` - Set an image as primary
 - `GET /api/products/search?q=query` - Search products (user-specific)
 
 All protected endpoints require a JWT token in the Authorization header:
@@ -163,11 +167,22 @@ Authorization: Bearer <token>
 - `name` (string)
 - `description` (string)
 - `price` (number)
-- `imagePath` (string, nullable)
+- `imagePath` (string, nullable) - **Deprecated**: Kept for backward compatibility
+- `primaryImageId` (UUID, nullable, unique, foreign key to ProductImage) - **Primary image selection**
+- `primaryImage` (relation to ProductImage)
+- `images` (relation to ProductImage[]) - **Multiple images support**
 - `supplierId` (UUID, foreign key to Supplier)
 - `supplier` (relation to Supplier)
 - `userId` (UUID, foreign key to User) - **User isolation**
 - `user` (relation to User)
+- `createdAt` (datetime)
+
+### ProductImage
+- `id` (UUID)
+- `path` (string) - Image file path
+- `productId` (UUID, foreign key to Product)
+- `product` (relation to Product)
+- `primaryFor` (relation to Product) - Reverse relation for primary image
 - `createdAt` (datetime)
 
 ## Usage

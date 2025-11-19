@@ -125,7 +125,7 @@ export default function ImageManager({
             return (
               <div
                 key={image.id}
-                className={`relative border-2 rounded-lg overflow-hidden ${
+                className={`relative border-2 rounded-lg overflow-hidden group ${
                   isPrimary ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200'
                 }`}
               >
@@ -146,8 +146,8 @@ export default function ImageManager({
                 )}
 
                 {/* Actions Overlay */}
-                <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-50 transition-opacity flex items-center justify-center gap-2">
-                  <div className="opacity-0 hover:opacity-100 flex gap-2">
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center gap-2 group">
+                  <div className="opacity-0 group-hover:opacity-100 flex gap-2 transition-opacity">
                     {!isPrimary && (
                       <button
                         onClick={() => handleSetPrimary(image.id)}
@@ -170,10 +170,10 @@ export default function ImageManager({
                 </div>
 
                 {/* Loading Overlay */}
-                {(isDeleting || isSettingPrimary) && (
-                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                {(isDeleting === image.id || isSettingPrimary === image.id) && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10">
                     <div className="text-white text-sm">
-                      {isDeleting ? 'Deleting...' : 'Setting primary...'}
+                      {isDeleting === image.id ? 'Deleting...' : 'Setting primary...'}
                     </div>
                   </div>
                 )}
