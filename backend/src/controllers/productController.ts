@@ -12,6 +12,8 @@ export const getProducts = async (req: Request, res: Response) => {
       where: { userId }, // Filter by user
       include: {
         supplier: true,
+        images: true,
+        primaryImage: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -56,6 +58,8 @@ export const createProduct = async (req: Request, res: Response) => {
       },
       include: {
         supplier: true,
+        images: true,
+        primaryImage: true,
       },
     });
 
@@ -124,6 +128,8 @@ export const updateProduct = async (req: Request, res: Response) => {
       data: updateData,
       include: {
         supplier: true,
+        images: true,
+        primaryImage: true,
       },
     });
 
@@ -157,6 +163,7 @@ export const uploadProductImage = async (req: Request, res: Response) => {
     // Verify ownership
     const existingProduct = await prisma.product.findFirst({
       where: { id: productId, userId },
+      include: { primaryImage: true },
     });
 
     if (!existingProduct) {
@@ -165,20 +172,37 @@ export const uploadProductImage = async (req: Request, res: Response) => {
 
     const filePath = `/uploads/${req.file.filename}`;
 
-    const product = await prisma.product.update({
-      where: { id: productId },
+    // Create a new ProductImage entry
+    const productImage = await prisma.productImage.create({
       data: {
-        imagePath: filePath,
+        path: filePath,
+        productId: productId,
       },
+    });
+
+    const updateData: any = {};
+
+    // Set as primary if no primary is set
+    if (!existingProduct.primaryImageId) {
+      updateData.primaryImageId = productImage.id;
+    }
+
+    const updatedProduct = await prisma.product.update({
+      where: { id: productId },
+      data: updateData,
       include: {
         supplier: true,
+        images: {
+          orderBy: { createdAt: 'desc' },
+        },
+        primaryImage: true,
       },
     });
 
     res.json({
       message: 'Image uploaded successfully',
-      imagePath: filePath,
-      product,
+      image: productImage,
+      product: updatedProduct,
     });
   } catch (error) {
     console.error('Upload image error:', error);
@@ -226,6 +250,8 @@ export const searchProducts = async (req: Request, res: Response) => {
       },
       include: {
         supplier: true,
+        images: true,
+        primaryImage: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -233,6 +259,137 @@ export const searchProducts = async (req: Request, res: Response) => {
     res.json(products);
   } catch (error) {
     console.error('Search products error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const deleteProductImage = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { imageId } = req.params;
+
+    // Find the image and verify ownership through product
+    const image = await prisma.productImage.findUnique({
+      where: { id: imageId },
+      include: {
+        product: true,
+      },
+    });
+
+    if (!image) {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+
+    if (image.product.userId !== userId) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    // If this is the primary image, we need to set another one as primary or clear it
+    const product = await prisma.product.findUnique({
+      where: { id: image.productId },
+      include: { images: true },
+    });
+
+    if (product?.primaryImageId === imageId) {
+      // Find another image to set as primary
+      const otherImage = product.images.find((img) => img.id !== imageId);
+      
+      const updateData: any = {};
+      if (otherImage) {
+        updateData.primaryImageId = otherImage.id;
+      } else {
+        updateData.primaryImageId = null;
+      }
+
+      await prisma.product.update({
+        where: { id: image.productId },
+        data: updateData,
+      });
+    }
+
+    // Delete the image
+    await prisma.productImage.delete({
+      where: { id: imageId },
+    });
+
+    // Get updated product
+    const updatedProduct = await prisma.product.findUnique({
+      where: { id: image.productId },
+      include: {
+        supplier: true,
+        images: {
+          orderBy: { createdAt: 'desc' },
+        },
+        primaryImage: true,
+      },
+    });
+
+    res.json({
+      message: 'Image deleted successfully',
+      product: updatedProduct,
+    });
+  } catch (error) {
+    console.error('Delete image error:', error);
+    if ((error as any).code === 'P2025') {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const setPrimaryImage = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { imageId } = req.params;
+
+    // Find the image and verify ownership through product
+    const image = await prisma.productImage.findUnique({
+      where: { id: imageId },
+      include: {
+        product: true,
+      },
+    });
+
+    if (!image) {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+
+    if (image.product.userId !== userId) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    // Set as primary image
+    const product = await prisma.product.update({
+      where: { id: image.productId },
+      data: {
+        primaryImageId: imageId,
+      },
+      include: {
+        supplier: true,
+        images: {
+          orderBy: { createdAt: 'desc' },
+        },
+        primaryImage: true,
+      },
+    });
+
+    res.json({
+      message: 'Primary image updated successfully',
+      product,
+    });
+  } catch (error) {
+    console.error('Set primary image error:', error);
+    if ((error as any).code === 'P2025') {
+      return res.status(404).json({ error: 'Image not found' });
+    }
     res.status(500).json({ error: 'Internal server error' });
   }
 };

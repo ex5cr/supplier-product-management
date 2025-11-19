@@ -7,12 +7,21 @@ interface Supplier {
   phone: string;
 }
 
+interface ProductImage {
+  id: string;
+  path: string;
+  createdAt: string;
+}
+
 interface Product {
   id: string;
   name: string;
   description: string;
   price: number;
   imagePath: string | null;
+  primaryImageId: string | null;
+  primaryImage?: ProductImage | null;
+  images?: ProductImage[];
   supplierId: string;
   supplier: Supplier;
   createdAt: string;
@@ -47,15 +56,16 @@ export default function ProductList({
             <div className="px-4 py-4 sm:px-6 hover:bg-gray-50">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  {product.imagePath && (
+                  {(product.primaryImage?.path || product.imagePath) && (
                     <div className="flex-shrink-0">
                       <img
-                        key={`${product.id}-${product.imagePath}`}
+                        key={`${product.id}-${product.primaryImage?.id || product.imagePath}`}
                         className="h-16 w-16 object-cover rounded"
-                        src={`${apiUrl}${product.imagePath}`}
+                        src={`${apiUrl}${product.primaryImage?.path || product.imagePath}`}
                         alt={product.name}
                         onError={(e) => {
-                          console.error('Image load error:', `${apiUrl}${product.imagePath}`);
+                          const imagePath = product.primaryImage?.path || product.imagePath;
+                          console.error('Image load error:', `${apiUrl}${imagePath}`);
                           (e.target as HTMLImageElement).style.display = 'none';
                         }}
                       />
@@ -74,9 +84,9 @@ export default function ProductList({
                     <p className="mt-1 text-sm text-gray-500">
                       Supplier: {product.supplier.name}
                     </p>
-                    {product.imagePath && (
-                      <p className="mt-1 text-xs text-gray-400 truncate">
-                        Image: {product.imagePath}
+                    {product.images && product.images.length > 0 && (
+                      <p className="mt-1 text-xs text-gray-400">
+                        {product.images.length} image{product.images.length !== 1 ? 's' : ''}
                       </p>
                     )}
                   </div>

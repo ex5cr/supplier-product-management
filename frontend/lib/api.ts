@@ -248,5 +248,15 @@ export const api = {
         createdAt: string;
       }>
     >(`/products/search?q=${encodeURIComponent(query)}`),
+
+  deleteProductImage: (imageId: string) =>
+    request<{ message: string; product: any }>(`/products/images/${imageId}`, {
+      method: 'DELETE',
+    }),
+
+  setPrimaryImage: (imageId: string) =>
+    request<{ message: string; product: any }>(`/products/images/${imageId}/primary`, {
+      method: 'PUT',
+    }),
 };
 

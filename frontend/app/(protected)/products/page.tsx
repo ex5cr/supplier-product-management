@@ -7,6 +7,7 @@ import ProductForm from '@/components/ProductForm';
 import SearchBar from '@/components/SearchBar';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import AlertModal from '@/components/AlertModal';
+import ImageManager from '@/components/ImageManager';
 
 interface Supplier {
   id: string;
@@ -15,12 +16,21 @@ interface Supplier {
   phone: string;
 }
 
+interface ProductImage {
+  id: string;
+  path: string;
+  createdAt: string;
+}
+
 interface Product {
   id: string;
   name: string;
   description: string;
   price: number;
   imagePath: string | null;
+  primaryImageId: string | null;
+  images?: ProductImage[];
+  primaryImage?: ProductImage | null;
   supplierId: string;
   supplier: Supplier;
   createdAt: string;
@@ -33,7 +43,6 @@ export default function ProductsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [uploadingImage, setUploadingImage] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: string | null }>({
     isOpen: false,
     id: null,
@@ -168,37 +177,6 @@ export default function ProductsPage() {
     setDeleteModal({ isOpen: false, id: null });
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !editingProduct) return;
-
-    setUploadingImage(true);
-    try {
-      const result = await api.uploadProductImage(editingProduct.id, file);
-      // Update the editing product with the new image path
-      if (result.product) {
-        setEditingProduct(result.product);
-      }
-      // Refresh products list to show the image
-      await fetchProducts();
-      setAlertModal({
-        isOpen: true,
-        title: 'Success',
-        message: 'Image uploaded successfully!',
-        variant: 'success',
-      });
-    } catch (error: any) {
-      setAlertModal({
-        isOpen: true,
-        title: 'Error',
-        message: error.message || 'Image upload failed',
-        variant: 'error',
-      });
-    } finally {
-      setUploadingImage(false);
-      e.target.value = '';
-    }
-  };
 
   if (loading) {
     return (
@@ -249,31 +227,21 @@ export default function ProductsPage() {
             onCancel={handleCancel}
           />
           {editingProduct && (
-            <div className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Upload Product Image
-              </h3>
-              <div className="flex items-center space-x-4">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png"
-                  onChange={handleImageUpload}
-                  disabled={uploadingImage || !editingProduct}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 disabled:opacity-50"
-                />
-                {uploadingImage && (
-                  <span className="text-sm text-gray-500">Uploading...</span>
-                )}
-              </div>
-              <p className="mt-2 text-sm text-gray-500">
-                Accepted formats: JPG, JPEG, PNG (max 5MB)
-              </p>
-            </div>
+            <ImageManager
+              productId={editingProduct.id}
+              images={editingProduct.images || []}
+              primaryImageId={editingProduct.primaryImageId}
+              apiBaseUrl={API_BASE_URL}
+              onImagesUpdated={(updatedProduct) => {
+                setEditingProduct(updatedProduct);
+                fetchProducts();
+              }}
+            />
           )}
           {!editingProduct && (
             <div className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
               <p className="text-sm text-gray-500">
-                You can upload an image after creating the product by editing it.
+                You can upload images after creating the product by editing it.
               </p>
             </div>
           )}

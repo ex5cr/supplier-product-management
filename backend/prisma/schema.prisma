@@ -11,10 +11,10 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
+  id        String     @id @default(uuid())
+  email     String     @unique
   password  String
-  createdAt DateTime @default(now())
+  createdAt DateTime   @default(now())
   suppliers Supplier[]
   products  Product[]
 
@@ -22,30 +22,43 @@ model User {
 }
 
 model Supplier {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   name      String
   email     String
   phone     String
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
   products  Product[]
 
   @@map("suppliers")
 }
 
 model Product {
-  id          String   @id @default(uuid())
-  name        String
-  description String
-  price       Float
-  imagePath   String?
-  supplierId  String
-  supplier    Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
+  id             String         @id @default(uuid())
+  name           String
+  description    String
+  price          Float
+  imagePath      String? // Kept for backward compatibility
+  primaryImageId String?        @unique // ID of the primary image
+  primaryImage   ProductImage?  @relation("PrimaryImage", fields: [primaryImageId], references: [id], onDelete: SetNull)
+  supplierId     String
+  supplier       Supplier       @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  images         ProductImage[] @relation("ProductImages")
+  createdAt      DateTime       @default(now())
 
   @@map("products")
 }
 
+model ProductImage {
+  id         String   @id @default(uuid())
+  path       String
+  productId  String
+  product    Product  @relation("ProductImages", fields: [productId], references: [id], onDelete: Cascade)
+  primaryFor Product? @relation("PrimaryImage")
+  createdAt  DateTime @default(now())
+
+  @@map("product_images")
+}
