@@ -1,6 +1,6 @@
 # Supplier & Product Management Application
 
-A full-stack application for managing suppliers and products with authentication, file uploads, and search functionality.
+A full-stack application for managing suppliers and products with authentication, multiple image support, file uploads, and search functionality.
 
 ## Tech Stack
 
@@ -198,7 +198,13 @@ Authorization: Bearer <token>
    - **Change supplier**: Requires password confirmation for security
    - Delete products
    - Each user only sees their own products
-4. **Upload Images**: Upload product images (JPG, PNG, JPEG) - images are displayed in the product list
+4. **Manage Product Images** (in Edit mode):
+   - **Upload multiple images** - Add as many images as needed per product
+   - **Set primary image** - Choose which image displays as the main product image
+   - **Delete images** - Remove unwanted images with confirmation
+   - **Visual indicators** - Primary image is clearly marked with a badge
+   - Images are displayed in a grid layout for easy management
+   - First uploaded image is automatically set as primary
 5. **Search**: Use the search bar to find products by name or supplier name (searches only your products)
 
 ## Development
@@ -227,9 +233,14 @@ Authorization: Bearer <token>
 ## Notes
 
 - Product images are stored in `backend/uploads/` directory and served as static files
+- **Multiple images per product** - Products can have unlimited images, with one designated as primary
+- **Primary image** - The primary image is displayed in product lists; other images are available in edit mode
+- **Image management** - All image operations (upload, delete, set primary) are available in the product edit form
 - JWT tokens expire after 7 days
-- File upload limit is 5MB
+- File upload limit is 5MB per image
 - All API routes except `/auth/register` and `/auth/login` require authentication
 - User data is automatically filtered by user ID - no need to manually filter in queries
 - When a supplier is deleted, all associated products are also deleted (cascade delete)
+- When a product is deleted, all associated images are also deleted (cascade delete)
+- When the primary image is deleted, another image is automatically set as primary (if available)
 
