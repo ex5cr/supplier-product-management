@@ -40,3 +40,14 @@ backend/prisma/migrations/
 # TypeScript
 *.tsbuildinfo
 
+# PostgreSQL installers and binaries (large files)
+*.exe
+*.msi
+*.dmg
+*.pkg
+
+# Large binary/archive files
+*.zip
+*.tar.gz
+*.rar
+*.7z
