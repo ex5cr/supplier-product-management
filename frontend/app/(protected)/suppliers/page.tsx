@@ -58,6 +58,19 @@ export default function SuppliersPage() {
     setEditingSupplier(null);
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this supplier? This will also delete all associated products.')) {
+      return;
+    }
+
+    try {
+      await api.deleteSupplier(id);
+      await fetchSuppliers();
+    } catch (error: any) {
+      alert(error.message || 'Failed to delete supplier');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -98,7 +111,7 @@ export default function SuppliersPage() {
         </div>
       ) : (
         <div className="mt-8">
-          <SupplierList suppliers={suppliers} onEdit={handleEdit} />
+          <SupplierList suppliers={suppliers} onEdit={handleEdit} onDelete={handleDelete} />
         </div>
       )}
     </div>

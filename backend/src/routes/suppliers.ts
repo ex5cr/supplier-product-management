@@ -4,6 +4,7 @@ import {
   getSuppliers,
   createSupplier,
   updateSupplier,
+  deleteSupplier,
 } from '../controllers/supplierController';
 
 const router = express.Router();
@@ -14,6 +15,7 @@ router.use(authenticateToken);
 router.get('/', getSuppliers);
 router.post('/', createSupplier);
 router.put('/:id', updateSupplier);
+router.delete('/:id', deleteSupplier);
 
 export default router;
 

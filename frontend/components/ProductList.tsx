@@ -21,12 +21,14 @@ interface Product {
 interface ProductListProps {
   products: Product[];
   onEdit: (product: Product) => void;
+  onDelete: (id: string) => void;
   apiUrl?: string;
 }
 
 export default function ProductList({
   products,
   onEdit,
+  onDelete,
   apiUrl = 'http://localhost:3001',
 }: ProductListProps) {
   if (products.length === 0) {
@@ -77,12 +79,18 @@ export default function ProductList({
                     )}
                   </div>
                 </div>
-                <div className="ml-2 flex-shrink-0 flex">
+                <div className="ml-2 flex-shrink-0 flex space-x-2">
                   <button
                     onClick={() => onEdit(product)}
                     className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none"
                   >
                     Edit
+                  </button>
+                  <button
+                    onClick={() => onDelete(product.id)}
+                    className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none"
+                  >
+                    Delete
                   </button>
                 </div>
               </div>

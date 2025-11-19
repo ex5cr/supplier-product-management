@@ -110,6 +110,19 @@ export default function ProductsPage() {
     setEditingProduct(null);
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this product?')) {
+      return;
+    }
+
+    try {
+      await api.deleteProduct(id);
+      await fetchProducts();
+    } catch (error: any) {
+      alert(error.message || 'Failed to delete product');
+    }
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !editingProduct) return;
@@ -210,6 +223,7 @@ export default function ProductsPage() {
           <ProductList
             products={products}
             onEdit={handleEdit}
+            onDelete={handleDelete}
             apiUrl={API_URL}
           />
         </div>

@@ -94,3 +94,39 @@ export const updateSupplier = async (req: Request, res: Response) => {
   }
 };
 
+export const deleteSupplier = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { id } = req.params;
+
+    // Verify ownership before deleting
+    const existingSupplier = await prisma.supplier.findFirst({
+      where: { id, userId },
+      include: {
+        products: true,
+      },
+    });
+
+    if (!existingSupplier) {
+      return res.status(404).json({ error: 'Supplier not found' });
+    }
+
+    // Delete supplier (cascade will delete associated products)
+    await prisma.supplier.delete({
+      where: { id },
+    });
+
+    res.json({ message: 'Supplier deleted successfully' });
+  } catch (error) {
+    console.error('Delete supplier error:', error);
+    if ((error as any).code === 'P2025') {
+      return res.status(404).json({ error: 'Supplier not found' });
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+

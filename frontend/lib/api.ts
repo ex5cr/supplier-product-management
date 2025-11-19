@@ -104,6 +104,11 @@ export const api = {
       body: data,
     }),
 
+  deleteSupplier: (id: string) =>
+    request<{ message: string }>(`/suppliers/${id}`, {
+      method: 'DELETE',
+    }),
+
   // Products
   getProducts: () =>
     request<
@@ -175,6 +180,17 @@ export const api = {
     }>(`/products/${id}`, {
       method: 'PUT',
       body: data,
+    }),
+
+  deleteProduct: (id: string) =>
+    request<{ message: string }>(`/products/${id}`, {
+      method: 'DELETE',
+    }),
+
+  verifyPassword: (password: string) =>
+    request<{ verified: boolean }>('/auth/verify-password', {
+      method: 'POST',
+      body: { password },
     }),
 
   uploadProductImage: (productId: string, file: File) => {

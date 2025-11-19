@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { api } from '@/lib/api';
 
 interface Supplier {
   id: string;
@@ -43,6 +44,12 @@ export default function ProductForm({
   const [supplierId, setSupplierId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [verifyingPassword, setVerifyingPassword] = useState(false);
+  const originalSupplierId = useRef<string>('');
+  const pendingSupplierId = useRef<string>('');
 
   useEffect(() => {
     if (product) {
@@ -50,10 +57,58 @@ export default function ProductForm({
       setDescription(product.description);
       setPrice(product.price.toString());
       setSupplierId(product.supplierId);
+      originalSupplierId.current = product.supplierId;
     } else if (suppliers.length > 0 && !supplierId) {
       setSupplierId(suppliers[0].id);
+      originalSupplierId.current = '';
     }
   }, [product, suppliers, supplierId]);
+
+  const handleSupplierChange = (newSupplierId: string) => {
+    // If editing and supplier is being changed, require password confirmation
+    if (product && newSupplierId !== originalSupplierId.current) {
+      pendingSupplierId.current = newSupplierId;
+      setShowPasswordModal(true);
+      setPassword('');
+      setPasswordError('');
+    } else {
+      setSupplierId(newSupplierId);
+    }
+  };
+
+  const handlePasswordConfirm = async () => {
+    if (!password) {
+      setPasswordError('Password is required');
+      return;
+    }
+
+    setPasswordError('');
+    setVerifyingPassword(true);
+
+    try {
+      await api.verifyPassword(password);
+      // Password verified, allow supplier change
+      setSupplierId(pendingSupplierId.current);
+      setShowPasswordModal(false);
+      setPassword('');
+      pendingSupplierId.current = '';
+    } catch (err: any) {
+      setPasswordError(err.message || 'Invalid password');
+    } finally {
+      setVerifyingPassword(false);
+    }
+  };
+
+  const handlePasswordCancel = () => {
+    setShowPasswordModal(false);
+    setPassword('');
+    setPasswordError('');
+    pendingSupplierId.current = '';
+    // Reset supplier to original
+    if (product) {
+      setSupplierId(originalSupplierId.current);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,7 +197,7 @@ export default function ProductForm({
           className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
           id="supplier"
           value={supplierId}
-          onChange={(e) => setSupplierId(e.target.value)}
+          onChange={(e) => handleSupplierChange(e.target.value)}
           required
         >
           {suppliers.map((supplier) => (
@@ -168,6 +223,60 @@ export default function ProductForm({
           Cancel
         </button>
       </div>
+
+      {/* Password Confirmation Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Password Confirmation Required
+              </h3>
+              <p className="text-sm text-gray-500 mb-4">
+                Please enter your password to confirm changing the supplier for this product.
+              </p>
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
+                  Password
+                </label>
+                <input
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  id="password"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setPasswordError('');
+                  }}
+                  autoFocus
+                />
+                {passwordError && (
+                  <p className="text-red-500 text-xs mt-1">{passwordError}</p>
+                )}
+              </div>
+              <div className="flex items-center justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={handlePasswordCancel}
+                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 focus:outline-none"
+                  disabled={verifyingPassword}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePasswordConfirm}
+                  className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 focus:outline-none disabled:opacity-50"
+                  disabled={verifyingPassword || !password}
+                >
+                  {verifyingPassword ? 'Verifying...' : 'Confirm'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

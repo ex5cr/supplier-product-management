@@ -105,3 +105,39 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
+export const verifyPassword = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({ error: 'Password is required' });
+    }
+
+    // Find user
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+
+    if (!isValidPassword) {
+      return res.status(401).json({ error: 'Invalid password' });
+    }
+
+    res.json({ verified: true });
+  } catch (error) {
+    console.error('Password verification error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+

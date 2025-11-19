@@ -228,3 +228,35 @@ export const searchProducts = async (req: Request, res: Response) => {
   }
 };
 
+export const deleteProduct = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { id } = req.params;
+
+    // Verify ownership before deleting
+    const existingProduct = await prisma.product.findFirst({
+      where: { id, userId },
+    });
+
+    if (!existingProduct) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    await prisma.product.delete({
+      where: { id },
+    });
+
+    res.json({ message: 'Product deleted successfully' });
+  } catch (error) {
+    console.error('Delete product error:', error);
+    if ((error as any).code === 'P2025') {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
