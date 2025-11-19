@@ -91,14 +91,8 @@ export const updateProduct = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    const updateData: any = {
-      name,
-      description,
-      price: parseFloat(price),
-    };
-
+    // Verify supplier exists AND belongs to user if supplierId is provided
     if (supplierId) {
-      // Verify supplier exists AND belongs to user
       const supplier = await prisma.supplier.findFirst({
         where: { id: supplierId, userId },
       });
@@ -106,7 +100,16 @@ export const updateProduct = async (req: Request, res: Response) => {
       if (!supplier) {
         return res.status(404).json({ error: 'Supplier not found' });
       }
+    }
 
+    const updateData: any = {
+      name,
+      description,
+      price: parseFloat(price),
+    };
+
+    // Always include supplierId if provided (required for reassignment)
+    if (supplierId) {
       updateData.supplierId = supplierId;
     }
 

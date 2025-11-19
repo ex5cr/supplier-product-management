@@ -115,7 +115,16 @@ export const deleteSupplier = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Supplier not found' });
     }
 
-    // Delete supplier (cascade will delete associated products)
+    // Safety check: Prevent deletion if supplier has products
+    if (existingSupplier.products.length > 0) {
+      return res.status(400).json({
+        error: 'Cannot delete supplier with associated products',
+        message: `This supplier has ${existingSupplier.products.length} product(s) associated with it. Please delete or reassign the products first.`,
+        productCount: existingSupplier.products.length,
+      });
+    }
+
+    // Delete supplier (only if no products exist)
     await prisma.supplier.delete({
       where: { id },
     });

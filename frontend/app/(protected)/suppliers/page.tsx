@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import SupplierList from '@/components/SupplierList';
 import SupplierForm from '@/components/SupplierForm';
+import ConfirmationModal from '@/components/ConfirmationModal';
+import AlertModal from '@/components/AlertModal';
 
 interface Supplier {
   id: string;
@@ -18,6 +20,17 @@ export default function SuppliersPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: string | null }>({
+    isOpen: false,
+    id: null,
+  });
+  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title: string; message: string; variant: 'error' | 'success' | 'info' }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    variant: 'info',
+  });
+  const [deleting, setDeleting] = useState(false);
 
   const fetchSuppliers = async () => {
     try {
@@ -58,17 +71,40 @@ export default function SuppliersPage() {
     setEditingSupplier(null);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this supplier? This will also delete all associated products.')) {
-      return;
-    }
+  const handleDeleteClick = (id: string) => {
+    setDeleteModal({ isOpen: true, id });
+  };
 
+  const handleDeleteConfirm = async () => {
+    if (!deleteModal.id) return;
+
+    setDeleting(true);
     try {
-      await api.deleteSupplier(id);
+      await api.deleteSupplier(deleteModal.id);
       await fetchSuppliers();
+      setDeleteModal({ isOpen: false, id: null });
+      setAlertModal({
+        isOpen: true,
+        title: 'Success',
+        message: 'Supplier deleted successfully.',
+        variant: 'success',
+      });
     } catch (error: any) {
-      alert(error.message || 'Failed to delete supplier');
+      const errorMessage = error.message || error.error || 'Failed to delete supplier';
+      setDeleteModal({ isOpen: false, id: null });
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: errorMessage,
+        variant: 'error',
+      });
+    } finally {
+      setDeleting(false);
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteModal({ isOpen: false, id: null });
   };
 
   if (loading) {
@@ -111,9 +147,29 @@ export default function SuppliersPage() {
         </div>
       ) : (
         <div className="mt-8">
-          <SupplierList suppliers={suppliers} onEdit={handleEdit} onDelete={handleDelete} />
+          <SupplierList suppliers={suppliers} onEdit={handleEdit} onDelete={handleDeleteClick} />
         </div>
       )}
+
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        title="Delete Supplier"
+        message="Are you sure you want to delete this supplier?\n\nNote: Suppliers with associated products cannot be deleted."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+        variant="danger"
+        loading={deleting}
+      />
+
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        title={alertModal.title}
+        message={alertModal.message}
+        variant={alertModal.variant}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+      />
     </div>
   );
 }

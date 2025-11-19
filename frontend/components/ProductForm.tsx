@@ -89,6 +89,8 @@ export default function ProductForm({
       await api.verifyPassword(password);
       // Password verified, allow supplier change
       setSupplierId(pendingSupplierId.current);
+      // Update original supplier ID so future changes don't require password again
+      originalSupplierId.current = pendingSupplierId.current;
       setShowPasswordModal(false);
       setPassword('');
       pendingSupplierId.current = '';

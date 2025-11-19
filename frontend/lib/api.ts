@@ -42,7 +42,13 @@ async function request<T>(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(error.error || 'Request failed');
+    // Preserve the full error object for better error handling
+    const errorMessage = error.message || error.error || 'Request failed';
+    const errorObj: any = new Error(errorMessage);
+    errorObj.error = error.error;
+    errorObj.message = error.message || error.error;
+    errorObj.productCount = error.productCount;
+    throw errorObj;
   }
 
   return response.json();
@@ -160,7 +166,7 @@ export const api = {
       name: string;
       description: string;
       price: number;
-      supplierId?: string;
+      supplierId: string;
     }
   ) =>
     request<{

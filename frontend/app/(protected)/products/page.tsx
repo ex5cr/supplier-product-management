@@ -5,6 +5,8 @@ import { api } from '@/lib/api';
 import ProductList from '@/components/ProductList';
 import ProductForm from '@/components/ProductForm';
 import SearchBar from '@/components/SearchBar';
+import ConfirmationModal from '@/components/ConfirmationModal';
+import AlertModal from '@/components/AlertModal';
 
 interface Supplier {
   id: string;
@@ -32,6 +34,17 @@ export default function ProductsPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: string | null }>({
+    isOpen: false,
+    id: null,
+  });
+  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title: string; message: string; variant: 'error' | 'success' | 'info' }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    variant: 'info',
+  });
+  const [deleting, setDeleting] = useState(false);
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
   const fetchProducts = async () => {
@@ -91,10 +104,14 @@ export default function ProductsPage() {
     name: string;
     description: string;
     price: number;
-    supplierId?: string;
+    supplierId: string;
   }) => {
     if (!editingProduct) return;
-    await api.updateProduct(editingProduct.id, data);
+    // Always include supplierId in update
+    await api.updateProduct(editingProduct.id, {
+      ...data,
+      supplierId: data.supplierId,
+    });
     await fetchProducts();
     setEditingProduct(null);
     setShowForm(false);
@@ -110,17 +127,40 @@ export default function ProductsPage() {
     setEditingProduct(null);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) {
-      return;
-    }
+  const handleDeleteClick = (id: string) => {
+    setDeleteModal({ isOpen: true, id });
+  };
 
+  const handleDeleteConfirm = async () => {
+    if (!deleteModal.id) return;
+
+    setDeleting(true);
     try {
-      await api.deleteProduct(id);
+      await api.deleteProduct(deleteModal.id);
       await fetchProducts();
+      setDeleteModal({ isOpen: false, id: null });
+      setAlertModal({
+        isOpen: true,
+        title: 'Success',
+        message: 'Product deleted successfully.',
+        variant: 'success',
+      });
     } catch (error: any) {
-      alert(error.message || 'Failed to delete product');
+      const errorMessage = error.message || error.error || 'Failed to delete product';
+      setDeleteModal({ isOpen: false, id: null });
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: errorMessage,
+        variant: 'error',
+      });
+    } finally {
+      setDeleting(false);
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteModal({ isOpen: false, id: null });
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -131,9 +171,19 @@ export default function ProductsPage() {
     try {
       await api.uploadProductImage(editingProduct.id, file);
       await fetchProducts();
-      alert('Image uploaded successfully!');
+      setAlertModal({
+        isOpen: true,
+        title: 'Success',
+        message: 'Image uploaded successfully!',
+        variant: 'success',
+      });
     } catch (error: any) {
-      alert(error.message || 'Image upload failed');
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: error.message || 'Image upload failed',
+        variant: 'error',
+      });
     } finally {
       setUploadingImage(false);
       e.target.value = '';
@@ -223,11 +273,31 @@ export default function ProductsPage() {
           <ProductList
             products={products}
             onEdit={handleEdit}
-            onDelete={handleDelete}
+            onDelete={handleDeleteClick}
             apiUrl={API_URL}
           />
         </div>
       )}
+
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        title="Delete Product"
+        message="Are you sure you want to delete this product?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+        variant="danger"
+        loading={deleting}
+      />
+
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        title={alertModal.title}
+        message={alertModal.message}
+        variant={alertModal.variant}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+      />
     </div>
   );
 }
