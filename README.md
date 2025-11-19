@@ -32,10 +32,14 @@ technical test/
 ## Features
 
 - ✅ User registration and login with JWT authentication
-- ✅ Supplier management (CRUD operations)
-- ✅ Product management (CRUD operations)
-- ✅ Product image upload (JPG, PNG, JPEG)
+- ✅ **User data isolation** - Each user only sees and manages their own suppliers and products
+- ✅ Supplier management (Create, Read, Update, Delete)
+- ✅ Product management (Create, Read, Update, Delete)
+- ✅ Product image upload (JPG, PNG, JPEG) with image display
 - ✅ Search products by name or supplier name
+- ✅ **Password confirmation** required when changing a product's supplier
+- ✅ **Safety features** - Prevents deletion of suppliers with associated products
+- ✅ **Modal-based UI** - Modern confirmation dialogs and alerts
 - ✅ Protected routes with authentication middleware
 - ✅ Responsive UI with Tailwind CSS
 
@@ -112,17 +116,22 @@ The frontend will be available at `http://localhost:3000`
 - `POST /api/auth/register` - Register a new user
 - `POST /api/auth/login` - Login and get JWT token
 
+### Authentication (Protected)
+- `POST /api/auth/verify-password` - Verify user password (for sensitive operations)
+
 ### Suppliers (Protected)
-- `GET /api/suppliers` - Get all suppliers
+- `GET /api/suppliers` - Get all suppliers (user-specific)
 - `POST /api/suppliers` - Create a new supplier
 - `PUT /api/suppliers/:id` - Update a supplier
+- `DELETE /api/suppliers/:id` - Delete a supplier (only if no products associated)
 
 ### Products (Protected)
-- `GET /api/products` - Get all products
+- `GET /api/products` - Get all products (user-specific)
 - `POST /api/products` - Create a new product
-- `PUT /api/products/:id` - Update a product
+- `PUT /api/products/:id` - Update a product (requires password confirmation to change supplier)
+- `DELETE /api/products/:id` - Delete a product
 - `POST /api/products/upload` - Upload product image
-- `GET /api/products/search?q=query` - Search products
+- `GET /api/products/search?q=query` - Search products (user-specific)
 
 All protected endpoints require a JWT token in the Authorization header:
 ```
@@ -136,13 +145,18 @@ Authorization: Bearer <token>
 - `email` (string, unique)
 - `password` (hashed string)
 - `createdAt` (datetime)
+- `suppliers` (relation to Supplier[])
+- `products` (relation to Product[])
 
 ### Supplier
 - `id` (UUID)
 - `name` (string)
 - `email` (string)
 - `phone` (string)
+- `userId` (UUID, foreign key to User) - **User isolation**
+- `user` (relation to User)
 - `createdAt` (datetime)
+- `products` (relation to Product[])
 
 ### Product
 - `id` (UUID)
@@ -150,16 +164,27 @@ Authorization: Bearer <token>
 - `description` (string)
 - `price` (number)
 - `imagePath` (string, nullable)
-- `supplierId` (UUID, foreign key)
+- `supplierId` (UUID, foreign key to Supplier)
+- `supplier` (relation to Supplier)
+- `userId` (UUID, foreign key to User) - **User isolation**
+- `user` (relation to User)
 - `createdAt` (datetime)
 
 ## Usage
 
 1. **Register/Login**: Start by creating an account or logging in
-2. **Manage Suppliers**: Add, view, and edit suppliers
-3. **Manage Products**: Create products and assign them to suppliers
-4. **Upload Images**: Upload product images (JPG, PNG, JPEG)
-5. **Search**: Use the search bar to find products by name or supplier name
+2. **Manage Suppliers**: 
+   - Add, view, edit, and delete suppliers
+   - Each user only sees their own suppliers
+   - Cannot delete suppliers that have associated products
+3. **Manage Products**: 
+   - Create products and assign them to suppliers
+   - Update product details
+   - **Change supplier**: Requires password confirmation for security
+   - Delete products
+   - Each user only sees their own products
+4. **Upload Images**: Upload product images (JPG, PNG, JPEG) - images are displayed in the product list
+5. **Search**: Use the search bar to find products by name or supplier name (searches only your products)
 
 ## Development
 
@@ -177,10 +202,19 @@ Authorization: Bearer <token>
 - `npm start` - Start production server
 - `npm run lint` - Run ESLint
 
+## Security Features
+
+- **User Data Isolation**: All suppliers and products are isolated per user. Users cannot see or modify other users' data.
+- **Password Confirmation**: Changing a product's supplier requires password verification for security.
+- **Delete Protection**: Suppliers with associated products cannot be deleted to prevent data loss.
+- **Ownership Verification**: All update and delete operations verify that the user owns the resource.
+
 ## Notes
 
-- Product images are stored in `backend/uploads/` directory
+- Product images are stored in `backend/uploads/` directory and served as static files
 - JWT tokens expire after 7 days
 - File upload limit is 5MB
 - All API routes except `/auth/register` and `/auth/login` require authentication
+- User data is automatically filtered by user ID - no need to manually filter in queries
+- When a supplier is deleted, all associated products are also deleted (cascade delete)
 
