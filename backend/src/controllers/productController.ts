@@ -3,7 +3,13 @@ import prisma from '../utils/db';
 
 export const getProducts = async (req: Request, res: Response) => {
   try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     const products = await prisma.product.findMany({
+      where: { userId }, // Filter by user
       include: {
         supplier: true,
       },
@@ -18,6 +24,11 @@ export const getProducts = async (req: Request, res: Response) => {
 
 export const createProduct = async (req: Request, res: Response) => {
   try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     const { name, description, price, supplierId } = req.body;
 
     if (!name || !description || !price || !supplierId) {
@@ -26,9 +37,9 @@ export const createProduct = async (req: Request, res: Response) => {
       });
     }
 
-    // Verify supplier exists
-    const supplier = await prisma.supplier.findUnique({
-      where: { id: supplierId },
+    // Verify supplier exists AND belongs to user
+    const supplier = await prisma.supplier.findFirst({
+      where: { id: supplierId, userId },
     });
 
     if (!supplier) {
@@ -41,6 +52,7 @@ export const createProduct = async (req: Request, res: Response) => {
         description,
         price: parseFloat(price),
         supplierId,
+        userId, // Associate with user
       },
       include: {
         supplier: true,
@@ -56,6 +68,11 @@ export const createProduct = async (req: Request, res: Response) => {
 
 export const updateProduct = async (req: Request, res: Response) => {
   try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     const { id } = req.params;
     const { name, description, price, supplierId } = req.body;
 
@@ -65,6 +82,15 @@ export const updateProduct = async (req: Request, res: Response) => {
         .json({ error: 'Name, description, and price are required' });
     }
 
+    // Verify ownership
+    const existingProduct = await prisma.product.findFirst({
+      where: { id, userId },
+    });
+
+    if (!existingProduct) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
     const updateData: any = {
       name,
       description,
@@ -72,9 +98,9 @@ export const updateProduct = async (req: Request, res: Response) => {
     };
 
     if (supplierId) {
-      // Verify supplier exists
-      const supplier = await prisma.supplier.findUnique({
-        where: { id: supplierId },
+      // Verify supplier exists AND belongs to user
+      const supplier = await prisma.supplier.findFirst({
+        where: { id: supplierId, userId },
       });
 
       if (!supplier) {
@@ -104,6 +130,11 @@ export const updateProduct = async (req: Request, res: Response) => {
 
 export const uploadProductImage = async (req: Request, res: Response) => {
   try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
@@ -112,6 +143,15 @@ export const uploadProductImage = async (req: Request, res: Response) => {
 
     if (!productId) {
       return res.status(400).json({ error: 'Product ID is required' });
+    }
+
+    // Verify ownership
+    const existingProduct = await prisma.product.findFirst({
+      where: { id: productId, userId },
+    });
+
+    if (!existingProduct) {
+      return res.status(404).json({ error: 'Product not found' });
     }
 
     const filePath = `/uploads/${req.file.filename}`;
@@ -142,6 +182,11 @@ export const uploadProductImage = async (req: Request, res: Response) => {
 
 export const searchProducts = async (req: Request, res: Response) => {
   try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     const { q } = req.query;
 
     if (!q || typeof q !== 'string') {
@@ -152,6 +197,7 @@ export const searchProducts = async (req: Request, res: Response) => {
 
     const products = await prisma.product.findMany({
       where: {
+        userId, // Filter by user
         OR: [
           {
             name: {

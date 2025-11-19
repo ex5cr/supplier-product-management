@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { isAuthenticated } from '@/lib/auth';
 import Link from 'next/link';
@@ -13,9 +13,16 @@ export default function ProtectedLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const [isClient, setIsClient] = useState(false);
+  const [isAuth, setIsAuth] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated()) {
+    // Mark that we're on the client
+    setIsClient(true);
+    const authenticated = isAuthenticated();
+    setIsAuth(authenticated);
+
+    if (!authenticated) {
       router.push('/login');
     }
   }, [router]);
@@ -25,7 +32,9 @@ export default function ProtectedLayout({
     router.push('/login');
   };
 
-  if (!isAuthenticated()) {
+  // Don't render anything until we're on the client and know auth status
+  // This prevents hydration mismatch
+  if (!isClient || !isAuth) {
     return null;
   }
 

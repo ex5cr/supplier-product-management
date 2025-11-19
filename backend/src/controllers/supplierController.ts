@@ -3,7 +3,13 @@ import prisma from '../utils/db';
 
 export const getSuppliers = async (req: Request, res: Response) => {
   try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     const suppliers = await prisma.supplier.findMany({
+      where: { userId }, // Filter by user
       orderBy: { createdAt: 'desc' },
     });
     res.json(suppliers);
@@ -15,6 +21,11 @@ export const getSuppliers = async (req: Request, res: Response) => {
 
 export const createSupplier = async (req: Request, res: Response) => {
   try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     const { name, email, phone } = req.body;
 
     if (!name || !email || !phone) {
@@ -28,6 +39,7 @@ export const createSupplier = async (req: Request, res: Response) => {
         name,
         email,
         phone,
+        userId, // Associate with user
       },
     });
 
@@ -40,6 +52,11 @@ export const createSupplier = async (req: Request, res: Response) => {
 
 export const updateSupplier = async (req: Request, res: Response) => {
   try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     const { id } = req.params;
     const { name, email, phone } = req.body;
 
@@ -47,6 +64,15 @@ export const updateSupplier = async (req: Request, res: Response) => {
       return res
         .status(400)
         .json({ error: 'Name, email, and phone are required' });
+    }
+
+    // Verify ownership before updating
+    const existingSupplier = await prisma.supplier.findFirst({
+      where: { id, userId },
+    });
+
+    if (!existingSupplier) {
+      return res.status(404).json({ error: 'Supplier not found' });
     }
 
     const supplier = await prisma.supplier.update({
