@@ -131,7 +131,9 @@ export const verifyPassword = async (req: Request, res: Response) => {
     const isValidPassword = await bcrypt.compare(password, user.password);
 
     if (!isValidPassword) {
-      return res.status(401).json({ error: 'Invalid password' });
+      // Return 400 (Bad Request) instead of 401 to avoid triggering logout
+      // 401 is reserved for authentication token issues
+      return res.status(400).json({ error: 'Invalid password' });
     }
 
     res.json({ verified: true });
